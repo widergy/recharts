@@ -164,22 +164,6 @@ class Tooltip extends Component {
       }
     }
 
-    outerStyle = {
-      ...outerStyle,
-      ...translateStyle({
-        transform: `translate(${translateX}px, ${translateY}px)`,
-      }),
-    };
-
-    if (isAnimationActive && active) {
-      outerStyle = {
-        ...outerStyle,
-        ...translateStyle({
-          transition: `transform ${animationDuration}ms ${animationEasing}`,
-        }),
-      };
-    }
-
     return (
       <div
         className="recharts-tooltip-wrapper"
