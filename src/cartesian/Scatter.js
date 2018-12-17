@@ -16,7 +16,7 @@ import Curve from '../shape/Curve';
 import Symbols from '../shape/Symbols';
 import ErrorBar from './ErrorBar';
 import Cell from '../component/Cell';
-import { uniqueId, interpolateNumber } from '../util/DataUtils';
+import { uniqueId, interpolateNumber, getLinearRegression } from '../util/DataUtils';
 import { getValueByDataKey, getCateCoordinateOfLine } from '../util/ChartUtils';
 
 @pureRender
@@ -133,6 +133,7 @@ class Scatter extends Component {
         ...entry, cx, cy,
         x: cx - radius,
         y: cy - radius,
+        xAxis, yAxis, zAxis,
         width: 2 * radius,
         height: 2 * radius,
         size,
@@ -176,7 +177,7 @@ class Scatter extends Component {
 
   id = uniqueId('recharts-scatter-');
 
-  renderSymbolItem(option, props) {
+  static renderSymbolItem(option, props) {
     let symbol;
 
     if (React.isValidElement(option)) {
@@ -203,7 +204,7 @@ class Scatter extends Component {
           {...filterEventsOfChild(this.props, entry, i)}
           key={`symbol-${i}`}
         >
-          {this.renderSymbolItem(activeIndex === i ? activeShape : shape, props)}
+          {this.constructor.renderSymbolItem(activeIndex === i ? activeShape : shape, props)}
         </Layer>
       );
     });
@@ -321,6 +322,10 @@ class Scatter extends Component {
 
     if (lineType === 'joint') {
       linePoints = points.map(entry => ({ x: entry.cx, y: entry.cy }));
+    } else if (lineType === 'fitting') {
+      const { xmin, xmax, a, b } = getLinearRegression(points);
+      const linearExp = x => a * x + b;
+      linePoints = [{ x: xmin, y: linearExp(xmin) }, { x: xmax, y: linearExp(xmax) }];
     }
     const lineProps = {
       ...scatterProps,
@@ -347,20 +352,21 @@ class Scatter extends Component {
 
   render() {
     const { hide, points, line, className, xAxis, yAxis, left, top, width,
-      height } = this.props;
+      height, id } = this.props;
     if (hide || !points || !points.length) { return null; }
     const { isAnimationActive, isAnimationFinished } = this.state;
     const layerClass = classNames('recharts-scatter', className);
     const needClip = (xAxis && xAxis.allowDataOverflow) || (yAxis && yAxis.allowDataOverflow);
+    const clipPathId = _.isNil(id) ? this.id : id;
 
     return (
       <Layer
         className={layerClass}
-        clipPath={needClip ? `url(#clipPath-${this.id})` : null}
+        clipPath={needClip ? `url(#clipPath-${clipPathId})` : null}
       >
         {needClip ? (
           <defs>
-            <clipPath id={`clipPath-${this.id}`}>
+            <clipPath id={`clipPath-${clipPathId}`}>
               <rect x={left} y={top} width={width} height={height} />
             </clipPath>
           </defs>

@@ -61,6 +61,7 @@ class Curve extends Component {
     points: [],
     connectNulls: false,
   };
+
   /**
    * Calculate the path of curve
    * @return {String} path
@@ -72,8 +73,9 @@ class Curve extends Component {
     let lineFunction;
 
     if (_.isArray(baseLine)) {
+      const formatBaseLine = connectNulls ? baseLine.filter(base => defined(base)) : baseLine;
       const areaPoints = formatPoints.map((entry, index) => (
-        { ...entry, base: baseLine[index] }
+        { ...entry, base: formatBaseLine[index] }
       ));
       if (layout === 'vertical') {
         lineFunction = shapeArea().y(getY).x1(getX).x0(d => d.base.x);
@@ -83,7 +85,7 @@ class Curve extends Component {
       lineFunction.defined(defined).curve(curveFactory);
 
       return lineFunction(areaPoints);
-    } else if (layout === 'vertical' && isNumber(baseLine)) {
+    } if (layout === 'vertical' && isNumber(baseLine)) {
       lineFunction = shapeArea().y(getY).x1(getX).x0(baseLine);
     } else if (isNumber(baseLine)) {
       lineFunction = shapeArea().x(getX).y1(getY).y0(baseLine);

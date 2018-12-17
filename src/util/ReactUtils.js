@@ -50,6 +50,7 @@ export const PRESENTATION_ATTRIBUTES = {
   kerning: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   letterSpacing: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   lightingColor: PropTypes.string,
+  lineHeight: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   markerEnd: PropTypes.string,
   markerMid: PropTypes.string,
   markerStart: PropTypes.string,
@@ -97,6 +98,8 @@ export const PRESENTATION_ATTRIBUTES = {
   x: PropTypes.number,
   y: PropTypes.number,
   r: PropTypes.number,
+  // The radius of Rectangle
+  radius: PropTypes.oneOfType([PropTypes.number, PropTypes.array]),
 };
 
 export const EVENT_ATTRIBUTES = {
@@ -131,7 +134,7 @@ const REACT_BROWSER_EVENT_MAP = {
 
 export const SCALE_TYPES = [
   'auto', 'linear', 'pow', 'sqrt', 'log', 'identity', 'time', 'band', 'point',
-  'ordinal', 'quantile', 'quantize', 'utcTime', 'sequential', 'threshold',
+  'ordinal', 'quantile', 'quantize', 'utc', 'sequential', 'threshold',
 ];
 
 export const LEGEND_TYPES = [
@@ -145,10 +148,10 @@ export const LEGEND_TYPES = [
  * @return {String}      Display name of Component
  */
 export const getDisplayName = (Comp) => {
-  if (!Comp) { return ''; }
   if (typeof Comp === 'string') {
     return Comp;
   }
+  if (!Comp) { return ''; }
   return Comp.displayName || Comp.name || 'Component';
 };
 
@@ -199,8 +202,8 @@ export const withoutType = (children, type) => {
   }
 
   React.Children.forEach(children, (child) => {
-    if (child && child.type && child.type.displayName
-      && types.indexOf(child.type.displayName) !== -1) {
+    if (child && child.type && child.type.displayName &&
+      types.indexOf(child.type.displayName) !== -1) {
       return;
     }
     newChildren.push(child);
@@ -343,12 +346,21 @@ export const filterSvgElements = (children) => {
 
   return svgElements;
 };
-
 export const isSingleChildEqual = (nextChild, prevChild) => {
   if (_.isNil(nextChild) && _.isNil(prevChild)) {
     return true;
-  } else if (!_.isNil(nextChild) && !_.isNil(prevChild)) {
-    return shallowEqual(nextChild.props, prevChild.props);
+  } if (!_.isNil(nextChild) && !_.isNil(prevChild)) {
+    const { children: nextChildren, ...nextProps } = nextChild.props || {};
+    const { children: prevChildren, ...prevProps } = prevChild.props || {};
+
+    if (nextChildren && prevChildren) {
+      // eslint-disable-next-line no-use-before-define
+      return shallowEqual(nextProps, prevProps) && isChildrenEqual(nextChildren, prevChildren);
+    } if (!nextChildren && !prevChildren) {
+      return shallowEqual(nextProps, prevProps);
+    }
+
+    return false;
   }
 
   return false;

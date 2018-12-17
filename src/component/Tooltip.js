@@ -5,10 +5,13 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { translateStyle } from 'react-smooth';
 import _ from 'lodash';
+import classNames from 'classnames';
 import DefaultTooltipContent from './DefaultTooltipContent';
 import { isSsr } from '../util/ReactUtils';
 import { isNumber } from '../util/DataUtils';
 import pureRender from '../util/PureRender';
+
+const CLS_PREFIX = 'recharts-tooltip-wrapper';
 
 const EPS = 1;
 
@@ -29,6 +32,7 @@ const propTypes = {
   itemStyle: PropTypes.object,
   labelStyle: PropTypes.object,
   wrapperStyle: PropTypes.object,
+  contentStyle: PropTypes.object,
   cursor: PropTypes.oneOfType([PropTypes.bool, PropTypes.element, PropTypes.object]),
 
   coordinate: PropTypes.shape({
@@ -58,6 +62,7 @@ const propTypes = {
   ]),
   itemSorter: PropTypes.func,
   filterNull: PropTypes.bool,
+  useTranslate3d: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -68,6 +73,7 @@ const defaultProps = {
   cursorStyle: {},
   separator: ' : ',
   wrapperStyle: {},
+  contentStyle: {},
   itemStyle: {},
   labelStyle: {},
   cursor: true,
@@ -76,12 +82,13 @@ const defaultProps = {
   animationDuration: 400,
   itemSorter: () => -1,
   filterNull: true,
+  useTranslate3d: false,
 };
 
 const renderContent = (content, props) => {
   if (React.isValidElement(content)) {
     return React.cloneElement(content, props);
-  } else if (_.isFunction(content)) {
+  } if (_.isFunction(content)) {
     return content(props);
   }
 
@@ -91,7 +98,9 @@ const renderContent = (content, props) => {
 @pureRender
 class Tooltip extends Component {
   static displayName = 'Tooltip';
+
   static propTypes = propTypes;
+
   static defaultProps = defaultProps;
 
   state = {
@@ -166,7 +175,6 @@ class Tooltip extends Component {
 
     return (
       <div
-        className="recharts-tooltip-wrapper"
         style={outerStyle}
         ref={(node) => { this.wrapperNode = node; }}
       >

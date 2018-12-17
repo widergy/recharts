@@ -4,6 +4,7 @@
 import _ from 'lodash';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 import pureRender from '../util/PureRender';
 import { isNumOrStr } from '../util/DataUtils';
 
@@ -20,8 +21,10 @@ class DefaultTooltipContent extends Component {
 
   static propTypes = {
     separator: PropTypes.string,
+    wrapperClassName: PropTypes.string,
+    labelClassName: PropTypes.string,
     formatter: PropTypes.func,
-    wrapperStyle: PropTypes.object,
+    contentStyle: PropTypes.object,
     itemStyle: PropTypes.object,
     labelStyle: PropTypes.object,
     labelFormatter: PropTypes.func,
@@ -36,6 +39,7 @@ class DefaultTooltipContent extends Component {
 
   static defaultProps = {
     separator: ' : ',
+    contentStyle: {},
     itemStyle: {},
     labelStyle: {},
   };
@@ -81,14 +85,21 @@ class DefaultTooltipContent extends Component {
   }
 
   render() {
-    const { labelStyle, label, labelFormatter, wrapperStyle } = this.props;
+    const {
+      wrapperClassName,
+      contentStyle,
+      labelClassName,
+      labelStyle,
+      label,
+      labelFormatter,
+    } = this.props;
     const finalStyle = {
       margin: 0,
       padding: 10,
       backgroundColor: '#fff',
       border: '1px solid #ccc',
       whiteSpace: 'nowrap',
-      ...wrapperStyle,
+      ...contentStyle,
     };
     const finalLabelStyle = {
       margin: 0,
@@ -96,12 +107,14 @@ class DefaultTooltipContent extends Component {
     };
     const hasLabel = isNumOrStr(label);
     let finalLabel = hasLabel ? label : '';
+    const wrapperCN = classNames('recharts-default-tooltip', wrapperClassName);
+    const labelCN = classNames('recharts-tooltip-label', labelClassName);
 
     if (hasLabel && labelFormatter) { finalLabel = labelFormatter(label); }
 
     return (
-      <div className="recharts-default-tooltip" style={finalStyle}>
-        <p className="recharts-tooltip-label" style={finalLabelStyle}>{finalLabel}</p>
+      <div className={wrapperCN} style={finalStyle}>
+        <p className={labelCN} style={finalLabelStyle}>{finalLabel}</p>
         {this.renderContent()}
       </div>
     );

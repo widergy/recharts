@@ -34,6 +34,8 @@ class CartesianGrid extends Component {
     offset: PropTypes.object,
     chartWidth: PropTypes.number,
     chartHeight: PropTypes.number,
+    verticalFill: PropTypes.arrayOf(PropTypes.string),
+    horizontalFill: PropTypes.arrayOf(PropTypes.string),
   };
 
   static defaultProps = {
@@ -46,9 +48,12 @@ class CartesianGrid extends Component {
 
     stroke: '#ccc',
     fill: 'none',
+    // The fill of colors of grid lines
+    verticalFill: [],
+    horizontalFill: [],
   };
 
-  renderLineItem(option, props) {
+  static renderLineItem(option, props) {
     let lineItem;
 
     if (React.isValidElement(option)) {
@@ -95,7 +100,7 @@ class CartesianGrid extends Component {
         index: i,
       };
 
-      return this.renderLineItem(horizontal, props);
+      return this.constructor.renderLineItem(horizontal, props);
     });
 
     return <g className="recharts-cartesian-grid-horizontal">{items}</g>;
@@ -122,11 +127,89 @@ class CartesianGrid extends Component {
         index: i,
       };
 
-      return this.renderLineItem(vertical, props);
+      return this.constructor.renderLineItem(vertical, props);
     });
 
     return <g className="recharts-cartesian-grid-vertical">{items}</g>;
   }
+
+  /**
+   * Draw vertical grid stripes filled by colors
+   * @param {Array} verticalPoints either passed in as props or generated from function
+   * @return {Group} Vertical stripes
+   */
+  renderVerticalStripes(verticalPoints) {
+    const { verticalFill } = this.props;
+    if (!verticalFill || !verticalFill.length) { return null; }
+
+    const { fillOpacity, x, y, width, height } = this.props;
+    const verticalPointsUpdated = verticalPoints.slice().sort((a, b) => a - b);
+
+    if (x !== verticalPointsUpdated[0]) {
+      verticalPointsUpdated.unshift(0);
+    }
+
+    const items = verticalPointsUpdated.map((entry, i) => {
+      const lineWidth = verticalPointsUpdated[i + 1] ?
+        verticalPointsUpdated[i + 1] - entry : (x + width - entry);
+      if (lineWidth <= 0) { return null; }
+      const colorIndex = i % verticalFill.length;
+      return (
+        <rect
+          key={`react-${i}`}
+          x={Math.round(entry + x - x)}
+          y={y}
+          width={lineWidth}
+          height={height}
+          stroke="none"
+          fill={verticalFill[colorIndex]}
+          fillOpacity={fillOpacity}
+          className="recharts-cartesian-grid-bg"
+        />
+      );
+    });
+
+    return <g className="recharts-cartesian-gridstripes-vertical">{items}</g>;
+  }
+
+  /**
+   * Draw horizontal grid stripes filled by colors
+   * @param {Array} horizontalPoints either passed in as props or generated from function
+   * @return {Group} Horizontal stripes
+   */
+  renderHorizontalStripes(horizontalPoints) {
+    const { horizontalFill } = this.props;
+    if (!horizontalFill || !horizontalFill.length) { return null; }
+
+    const { fillOpacity, x, y, width, height } = this.props;
+    const horizontalPointsUpdated = horizontalPoints.slice().sort((a, b) => a - b);
+    if (y !== horizontalPointsUpdated[0]) {
+      horizontalPointsUpdated.unshift(0);
+    }
+
+    const items = horizontalPointsUpdated.map((entry, i) => {
+      const lineHeight = horizontalPointsUpdated[i + 1] ?
+        horizontalPointsUpdated[i + 1] - entry : (y + height - entry);
+      if (lineHeight <= 0) { return null; }
+      const colorIndex = i % horizontalFill.length;
+      return (
+        <rect
+          key={`react-${i}`}
+          y={Math.round(entry + y - y)}
+          x={x}
+          height={lineHeight}
+          width={width}
+          stroke="none"
+          fill={horizontalFill[colorIndex]}
+          fillOpacity={fillOpacity}
+          className="recharts-cartesian-grid-bg"
+        />
+      );
+    });
+
+    return <g className="recharts-cartesian-gridstripes-horizontal">{items}</g>;
+  }
+
 
   renderBackground() {
     const { fill } = this.props;
@@ -179,6 +262,9 @@ class CartesianGrid extends Component {
         {this.renderBackground()}
         {horizontal && this.renderHorizontal(horizontalPoints)}
         {vertical && this.renderVertical(verticalPoints)}
+
+        {horizontal && this.renderHorizontalStripes(horizontalPoints)}
+        {vertical && this.renderVerticalStripes(verticalPoints)}
       </g>
     );
   }

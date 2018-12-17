@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import _ from 'lodash';
 import classNames from 'classnames';
 import Text from './Text';
-import { getPresentationAttributes, findAllByType } from '../util/ReactUtils';
+import { PRESENTATION_ATTRIBUTES, getPresentationAttributes, findAllByType } from '../util/ReactUtils';
 import { isNumOrStr, isNumber, isPercent, getPercentValue, uniqueId,
   mathSign } from '../util/DataUtils';
 import { polarToCartesian } from '../util/PolarUtils';
@@ -24,6 +24,7 @@ const polarViewBoxShape = PropTypes.shape({
 });
 
 const propTypes = {
+  ...PRESENTATION_ATTRIBUTES,
   viewBox: PropTypes.oneOfType([cartesianViewBoxShape, polarViewBoxShape]),
   formatter: PropTypes.func,
   value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
@@ -32,7 +33,7 @@ const propTypes = {
     'top', 'left', 'right', 'bottom', 'inside', 'outside',
     'insideLeft', 'insideRight', 'insideTop', 'insideBottom',
     'insideTopLeft', 'insideBottomLeft', 'insideTopRight', 'insideBottomRight',
-    'insideStart', 'insideEnd', 'end', 'center',
+    'insideStart', 'insideEnd', 'end', 'center', 'centerTop', 'centerBottom'
   ]),
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
@@ -91,7 +92,7 @@ const renderRadialLabel = (labelProps, label, attrs) => {
   const path = `M${startPoint.x},${startPoint.y}
     A${radius},${radius},0,1,${direction ? 0 : 1},
     ${endPoint.x},${endPoint.y}`;
-  const id = uniqueId('recharts-radial-line-');
+  const id = _.isNil(labelProps.id) ? uniqueId('recharts-radial-line-') : labelProps.id;
 
   return (
     <text
@@ -130,6 +131,24 @@ const getAttrsOfPolarLabel = (props) => {
     };
   }
 
+  if (position === 'centerTop') {
+    return {
+      x: cx,
+      y: cy,
+      textAnchor: 'middle',
+      verticalAnchor: 'start',
+    };
+  }
+
+  if (position === 'centerBottom') {
+    return {
+      x: cx,
+      y: cy,
+      textAnchor: 'middle',
+      verticalAnchor: 'end',
+    };
+  }
+
   const r = (innerRadius + outerRadius) / 2;
   const { x, y } = polarToCartesian(cx, cy, r, midAngle);
 
@@ -151,7 +170,7 @@ const getAttrsOfCartesianLabel = (props) => {
       x: x + width / 2,
       y: y - sign * offset,
       textAnchor: 'middle',
-      verticalAnchor: 'end',
+      verticalAnchor: sign > 0 ? 'end' : 'start',
     };
   }
 
@@ -290,7 +309,6 @@ function Label(props) {
     if (isValidElement(label)) {
       return label;
     }
-    console.log(label);
   } else {
     label = getLabel(props);
   }
@@ -329,7 +347,7 @@ const parseViewBox = (props) => {
   if (isNumber(width) && isNumber(height)) {
     if (isNumber(x) && isNumber(y)) {
       return { x, y, width, height };
-    } else if (isNumber(top) && isNumber(left)) {
+    } if (isNumber(top) && isNumber(left)) {
       return { x: top, y: left, width, height };
     }
   }
@@ -385,11 +403,10 @@ const renderCallByParent = (parentProps, viewBox, ckeckPropsLabel = true) => {
   const { children } = parentProps;
   const parentViewBox = parseViewBox(parentProps);
 
-  const explicitChilren = findAllByType(children, Label).map((child, index) =>
-    cloneElement(child, {
-      viewBox: viewBox || parentViewBox,
-      key: `label-${index}`,
-    })
+  const explicitChilren = findAllByType(children, Label).map((child, index) => cloneElement(child, {
+    viewBox: viewBox || parentViewBox,
+    key: `label-${index}`,
+  })
   );
 
   if (!ckeckPropsLabel) { return explicitChilren; }

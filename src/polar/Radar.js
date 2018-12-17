@@ -131,7 +131,7 @@ class Radar extends Component {
     }
   };
 
-  renderDotItem(option, props) {
+  static renderDotItem(option, props) {
     let dotItem;
 
     if (React.isValidElement(option)) {
@@ -160,10 +160,10 @@ class Radar extends Component {
         cx: entry.x,
         cy: entry.y,
         index: i,
-        playload: entry,
+        payload: entry,
       };
 
-      return this.renderDotItem(dot, dotProps);
+      return this.constructor.renderDotItem(dot, dotProps);
     });
 
     return <Layer className="recharts-radar-dots">{dots}</Layer>;

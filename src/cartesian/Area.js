@@ -63,14 +63,16 @@ class Area extends Component {
       y: PropTypes.number,
       value: PropTypes.oneOfType([PropTypes.number, PropTypes.array]),
     })),
+
     onAnimationStart: PropTypes.func,
     onAnimationEnd: PropTypes.func,
-
     animationId: PropTypes.number,
     isAnimationActive: PropTypes.bool,
     animationBegin: PropTypes.number,
     animationDuration: PropTypes.number,
     animationEasing: PropTypes.oneOf(['ease', 'ease-in', 'ease-out', 'ease-in-out', 'linear']),
+
+    id: PropTypes.string,
   };
 
   static defaultProps = {
@@ -158,10 +160,18 @@ class Area extends Component {
 
     let baseLine;
     if (hasStack || isRange) {
-      baseLine = points.map(entry => ({
-        x: layout === 'horizontal' ? entry.x : xAxis.scale(entry && entry.value[0]),
-        y: layout === 'horizontal' ? yAxis.scale(entry && entry.value[0]) : entry.y,
-      }));
+      baseLine = points.map((entry) => {
+        if (layout === 'horizontal') {
+          return {
+            x: entry.x,
+            y: !_.isNil(_.get(entry, 'value[0]')) ? yAxis.scale(_.get(entry, 'value[0]')) : null,
+          };
+        }
+        return {
+          x: !_.isNil(_.get(entry, 'value[0]')) ? xAxis.scale(_.get(entry, 'value[0]')) : null,
+          y: entry.y,
+        };
+      });
     } else if (layout === 'horizontal') {
       baseLine = yAxis.scale(baseValue);
     } else {
@@ -225,8 +235,9 @@ class Area extends Component {
 
   renderDots() {
     const { isAnimationActive } = this.props;
+    const { isAnimationFinished } = this.state;
 
-    if (isAnimationActive && !this.state.isAnimationFinished) { return null; }
+    if (isAnimationActive && !isAnimationFinished) { return null; }
 
     const { dot, points, dataKey } = this.props;
     const areaProps = getPresentationAttributes(this.props);
@@ -273,7 +284,7 @@ class Area extends Component {
           x={startX < endX ? startX : startX - width}
           y={0}
           width={width}
-          height={maxY + (strokeWidth || 1)}
+          height={parseInt(maxY + (strokeWidth || 1), 10)}
         />
       );
     }
@@ -300,7 +311,7 @@ class Area extends Component {
           x={0}
           y={startY < endY ? startY : startY - height}
           width={maxX + (strokeWidth || 1)}
-          height={height}
+          height={parseInt(height, 10)}
         />
       );
     }
@@ -358,8 +369,9 @@ class Area extends Component {
 
   renderAreaWithAnimation(needClip) {
     const { points, baseLine, isAnimationActive, animationBegin,
-      animationDuration, animationEasing, animationId } = this.props;
+      animationDuration, animationEasing, animationId, id } = this.props;
     const { prevPoints, prevBaseLine } = this.state;
+    const clipPathId = _.isNil(id) ? this.id : id;
 
     return (
       <Animate
@@ -393,6 +405,9 @@ class Area extends Component {
               if (isNumber(baseLine)) {
                 const interpolator = interpolateNumber(prevBaseLine, baseLine);
                 stepBaseLine = interpolator(t);
+              } else if (_.isNil(baseLine) || _.isNaN(baseLine)) {
+                const interpolator = interpolateNumber(prevBaseLine, 0);
+                stepBaseLine = interpolator(t);
               } else {
                 stepBaseLine = baseLine.map((entry, index) => {
                   if (prevBaseLine[index]) {
@@ -413,11 +428,11 @@ class Area extends Component {
             return (
               <Layer>
                 <defs>
-                  <clipPath id={`animationClipPath-${this.id}`}>
+                  <clipPath id={`animationClipPath-${clipPathId}`}>
                     {this.renderClipRect(t)}
                   </clipPath>
                 </defs>
-                <Layer clipPath={`url(#animationClipPath-${this.id})`}>
+                <Layer clipPath={`url(#animationClipPath-${clipPathId})`}>
                   {this.renderAreaStatically(points, baseLine, needClip)}
                 </Layer>
               </Layer>
@@ -443,7 +458,7 @@ class Area extends Component {
 
   render() {
     const { hide, dot, points, className, top, left, xAxis, yAxis,
-      width, height, isAnimationActive } = this.props;
+      width, height, isAnimationActive, id } = this.props;
 
     if (hide || !points || !points.length) { return null; }
 
@@ -451,13 +466,14 @@ class Area extends Component {
     const hasSinglePoint = points.length === 1;
     const layerClass = classNames('recharts-area', className);
     const needClip = (xAxis && xAxis.allowDataOverflow) || (yAxis && yAxis.allowDataOverflow);
+    const clipPathId = _.isNil(id) ? this.id : id;
 
     return (
       <Layer className={layerClass}>
         {needClip ? (
           <defs>
-            <clipPath id={`clipPath-${this.id}`}>
-              <rect x={left} y={top} width={width} height={height} />
+            <clipPath id={`clipPath-${clipPathId}`}>
+              <rect x={left} y={top} width={width} height={parseInt(height, 10)} />
             </clipPath>
           </defs>
         ) : null}
